@@ -244,7 +244,7 @@ Triggered by `payment_successful`:
 
 ---
 
-## 🧠 Design Philosophy
+## Design Philosophy
 
 * Keep services **loosely coupled**
 * Prefer **async over blocking operations**
