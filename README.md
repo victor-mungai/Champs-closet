@@ -253,3 +253,90 @@ Triggered by `payment_successful`:
 
 ---
 
+## Local Startup Guide (All Services)
+
+Use these steps from the project root (`c:\work\Champs-closet`) to run the full stack locally.
+
+### 1. Prerequisites
+
+* Python 3.12+
+* Node.js 20+
+* Docker Desktop (for Redis)
+* Valid `.env` files in:
+  * `product_service/.env`
+  * `ai_service/.env`
+  * `ingestion_service/.env`
+  * `order_service/.env`
+  * `notification_service/.env`
+  * `UI/.env`
+
+### 2. Start Redis (required by all async services)
+
+```powershell
+docker compose up -d redis
+```
+
+### 3. Start Product Service (port 8000)
+
+```powershell
+cd product_service
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### 4. Start AI Service (port 8001)
+
+```powershell
+cd ai_service
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+```
+
+### 5. Start WhatsApp Ingestion Service (port 8002)
+
+```powershell
+cd ingestion_service
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8002
+```
+
+### 6. Start Order Service (port 8003)
+
+```powershell
+cd order_service
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8003
+```
+
+### 7. Start Notification Service (port 8004)
+
+```powershell
+cd notification_service
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8004
+```
+
+### 8. Start UI (port 3000)
+
+```powershell
+cd UI
+npm install
+npm run dev
+```
+
+### 9. Quick Health Checks
+
+```powershell
+curl http://localhost:8000/health
+curl http://localhost:8001/health
+curl http://localhost:8002/health
+curl http://localhost:8003/health
+curl http://localhost:8004/health
+```
+
+
