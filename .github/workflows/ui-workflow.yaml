@@ -80,6 +80,7 @@ jobs:
     name: ui-sonarcloud
     runs-on: ubuntu-latest
     env:
+      SONAR_CI_ENABLED: ${{ vars.SONAR_CI_ENABLED }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
       SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
@@ -92,7 +93,7 @@ jobs:
       - name: SonarCloud precheck
         id: sonar_precheck
         run: |
-          if [ -n "$SONAR_TOKEN" ] && [ -n "$SONAR_PROJECT_KEY" ] && [ -n "$SONAR_ORGANIZATION" ]; then
+          if [ "$SONAR_CI_ENABLED" = "true" ] && [ -n "$SONAR_TOKEN" ] && [ -n "$SONAR_PROJECT_KEY" ] && [ -n "$SONAR_ORGANIZATION" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
@@ -113,7 +114,7 @@ jobs:
 
       - name: SonarCloud skipped (missing secrets)
         if: ${{ steps.sonar_precheck.outputs.enabled != 'true' }}
-        run: echo "Skipping SonarCloud scan. Set SONAR_TOKEN, SONAR_PROJECT_KEY, and SONAR_ORGANIZATION secrets to enable it."
+        run: echo "Skipping SonarCloud scan. Set SONAR_CI_ENABLED=true and configure SONAR_TOKEN, SONAR_PROJECT_KEY, SONAR_ORGANIZATION."
 
   owasp-dependency-check:
     name: ui-owasp-dependency-check
@@ -128,7 +129,7 @@ jobs:
         with:
           project: champs-ui
           path: UI
-          format: "HTML,JSON,SARIF"
+          format: "ALL"
           out: reports
           args: >
             --enableRetired
@@ -184,7 +185,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Trivy image scan (fail on HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.24.0
         with:
           image-ref: ${{ env.IMAGE_NAME }}:ci-scan
           format: table
@@ -194,7 +195,7 @@ jobs:
           exit-code: '1'
 
       - name: Trivy SARIF report
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.24.0
         with:
           image-ref: ${{ env.IMAGE_NAME }}:ci-scan
           format: sarif
