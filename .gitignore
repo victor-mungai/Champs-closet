@@ -24,6 +24,7 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+firebase-admin.json
 MANIFEST
 
 # PyInstaller
@@ -130,6 +131,7 @@ __pypackages__/
 # Celery stuff
 celerybeat-schedule
 celerybeat.pid
+
 
 # SageMath parsed files
 *.sage.py
