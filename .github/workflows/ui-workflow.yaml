@@ -22,6 +22,7 @@ concurrency:
 env:
   UI_WORKDIR: UI
   IMAGE_NAME: victormungai/champs-ui
+  UI_DOCKERFILE: UI/Dockerfile
 
 jobs:
   lint:
@@ -48,33 +49,32 @@ jobs:
         run: npm run lint
 
   build:
-    name: ui-build
+    name: ui-docker-build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.UI_WORKDIR }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Prepare build metadata
+        id: build_meta
+        run: echo "build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
+      - name: Build UI image (multi-stage Dockerfile)
+        uses: docker/build-push-action@v6
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: UI/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ui-dist
-          path: UI/dist
+          context: ${{ env.UI_WORKDIR }}
+          file: ${{ env.UI_DOCKERFILE }}
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:ci-build
+          build-args: |
+            VERSION=${{ github.sha }}
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ steps.build_meta.outputs.build_date }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   sonarcloud:
     name: ui-sonarcloud
@@ -174,13 +174,21 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Prepare scan build metadata
+        id: scan_build_meta
+        run: echo "build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
       - name: Build image (local for scan)
         uses: docker/build-push-action@v6
         with:
-          context: UI
-          file: UI/Dockerfile
+          context: ${{ env.UI_WORKDIR }}
+          file: ${{ env.UI_DOCKERFILE }}
           load: true
           tags: ${{ env.IMAGE_NAME }}:ci-scan
+          build-args: |
+            VERSION=${{ github.sha }}
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ steps.scan_build_meta.outputs.build_date }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -235,6 +243,10 @@ jobs:
             type=sha,prefix=sha-
             type=ref,event=branch
 
+      - name: Prepare publish build metadata
+        id: publish_build_meta
+        run: echo "build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -244,10 +256,14 @@ jobs:
       - name: Build and push image to Docker Hub
         uses: docker/build-push-action@v6
         with:
-          context: UI
-          file: UI/Dockerfile
+          context: ${{ env.UI_WORKDIR }}
+          file: ${{ env.UI_DOCKERFILE }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ github.sha }}
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ steps.publish_build_meta.outputs.build_date }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
