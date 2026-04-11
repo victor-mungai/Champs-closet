@@ -1,12 +1,12 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { Lock, Menu, Search, ShoppingBag, User, X } from 'lucide-react';
+import { Lock, Menu, Search, ShoppingBag, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useCart } from '../context/CartContext';
 
 const categories = [
   { label: 'Shirts', slug: 'shirts' },
-  { label: 'Shoe Hub', slug: 'shoe-hub' },
+  { label: 'Shoes', slug: 'shoes' },
   { label: 'Vests', slug: 'vests' },
   { label: 'Trousers', slug: 'trousers' },
   { label: 'Sweaters', slug: 'sweaters' },
@@ -34,13 +34,13 @@ const Navbar = () => {
                 {cat.label}
               </Link>
             ))}
+            <Link to="/faq" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">
+              FAQ
+            </Link>
           </div>
           <div className="flex items-center gap-2">
             <button className="p-2 hover:bg-surface-container-low rounded-full" onClick={() => navigate('/catalog/all')}>
               <Search className="w-5 h-5" />
-            </button>
-            <button className="p-2 hover:bg-surface-container-low rounded-full" onClick={() => alert('Customer accounts coming soon.') }>
-              <User className="w-5 h-5" />
             </button>
             <button className="p-2 hover:bg-surface-container-low rounded-full relative" onClick={() => setIsCartOpen(true)}>
               <ShoppingBag className="w-5 h-5" />
@@ -88,6 +88,13 @@ const Navbar = () => {
                     {cat.label}
                   </Link>
                 ))}
+                <Link
+                  to="/faq"
+                  className="block text-lg font-medium hover:text-primary transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  FAQ
+                </Link>
               </div>
               <div className="p-6 border-t border-outline-variant/10">
                 <Link

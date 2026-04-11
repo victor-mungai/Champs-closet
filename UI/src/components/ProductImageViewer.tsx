@@ -9,7 +9,7 @@ const ProductImageViewer = ({ images }: { images: string[] }) => {
   return (
     <div className="flex flex-col gap-4">
       <div className="aspect-[4/5] rounded-3xl overflow-hidden bg-surface-container-low">
-        <img src={mainImage} alt={`Product image ${activeIndex + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+        <img src={mainImage} alt={`Product image ${activeIndex + 1}`} loading="lazy" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
       </div>
       {validImages.length > 1 && (
         <div className="flex gap-3 overflow-x-auto pb-2">
@@ -19,7 +19,7 @@ const ProductImageViewer = ({ images }: { images: string[] }) => {
               className={`flex-shrink-0 w-20 h-24 rounded-xl overflow-hidden border-2 ${index === activeIndex ? 'border-primary' : 'border-transparent'}`}
               onClick={() => setActiveIndex(index)}
             >
-              <img src={img} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <img src={img} alt={`Thumbnail ${index + 1}`} loading="lazy" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             </button>
           ))}
         </div>

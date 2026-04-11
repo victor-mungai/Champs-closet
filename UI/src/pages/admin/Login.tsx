@@ -60,7 +60,7 @@ const Login = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-surface px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 border border-outline-variant/20"
-              placeholder="••••••••"
+              placeholder=""
               required
             />
           </div>
