@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
-ARG NODE_VERSION=20-alpine3.22
-ARG NGINX_VERSION=1.27.5-alpine3.22
+ARG NODE_VERSION=20-alpine
+ARG NGINX_VERSION=1.27-alpine
 
 FROM node:${NODE_VERSION} AS deps
 WORKDIR /app
