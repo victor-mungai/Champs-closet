@@ -5,6 +5,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useProducts } from '../../hooks/useProducts';
 import { fetchOrderMetrics, fetchOrders } from '../../services/api';
 import type { Order, OrderMetrics } from '../../types';
+import { getErrorMessage } from '../../utils/error';
 import type { AdminOutletContext } from './AdminLayout';
 
 const formatCurrency = (value: number) => new Intl.NumberFormat('en-KE', { maximumFractionDigits: 0 }).format(value);
@@ -44,8 +45,8 @@ const Dashboard = () => {
         const token = await user.getIdToken();
         const data = await fetchOrderMetrics(14, {}, token);
         if (active) setMetrics(data);
-      } catch (err: any) {
-        if (active) setOrderError(err?.message || 'Failed to load order metrics.');
+      } catch (err: unknown) {
+        if (active) setOrderError(getErrorMessage(err, 'Failed to load order metrics.'));
       } finally {
         if (active) setLoadingMetrics(false);
       }
@@ -57,8 +58,8 @@ const Dashboard = () => {
         const token = await user.getIdToken();
         const data = await fetchOrders({ limit: 5 }, token);
         if (active) setRecentOrders(data);
-      } catch (err: any) {
-        if (active) setOrderError(err?.message || 'Failed to load orders.');
+      } catch (err: unknown) {
+        if (active) setOrderError(getErrorMessage(err, 'Failed to load orders.'));
       } finally {
         if (active) setLoadingOrders(false);
       }

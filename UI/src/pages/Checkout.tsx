@@ -6,12 +6,12 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
 import { useCart } from '../context/CartContext';
 import { createOrder, fetchDeliveryQuote, fetchOrderStatus } from '../services/api';
+import { getErrorMessage } from '../utils/error';
 
 const SHOP_LOCATION = { lat: -1.49315, lng: 36.955124 };
-const MAP_ID =
-  (import.meta as any).env?.VITE_GOOGLE_MAPS_MAP_ID ||
-  (globalThis as any).GOOGLE_MAPS_MAP_ID ||
-  undefined;
+type GlobalMapsConfig = typeof globalThis & { GOOGLE_MAPS_MAP_ID?: string };
+const RUNTIME_MAP_ID = (globalThis as GlobalMapsConfig).GOOGLE_MAPS_MAP_ID;
+const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || RUNTIME_MAP_ID || undefined;
 
 const JAGGED_TOP_BG =
   "url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCI+PHBvbHlnb24gcG9pbnRzPSIwLDEwIDUsMCAxMCwxMCIgZmlsbD0iI2ZkZmJmNyIvPjwvc3ZnPg==')";
@@ -156,9 +156,9 @@ const Checkout = () => {
         if (active) {
           setDeliveryFee(quote.fee);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (active) {
-          setPaymentError(err?.message || 'Failed to calculate delivery fee.');
+          setPaymentError(getErrorMessage(err, 'Failed to calculate delivery fee.'));
         }
       } finally {
         if (active) {
@@ -201,8 +201,8 @@ const Checkout = () => {
         location,
         label: first.formatted_address || query,
       });
-    } catch (err: any) {
-      setPaymentError(err?.message || 'Failed to search for that address.');
+    } catch (err: unknown) {
+      setPaymentError(getErrorMessage(err, 'Failed to search for that address.'));
     } finally {
       setIsSearchingAddress(false);
     }
@@ -359,8 +359,8 @@ const Checkout = () => {
         createdAt: new Date().toISOString(),
       });
       await pollPaymentStatus(response.order_id, normalizedPhone);
-    } catch (err: any) {
-      setPaymentError(err?.message || 'Failed to initiate payment.');
+    } catch (err: unknown) {
+      setPaymentError(getErrorMessage(err, 'Failed to initiate payment.'));
     } finally {
       setIsPaying(false);
     }

@@ -9,7 +9,7 @@ import { useCart } from '../context/CartContext';
 import { fetchProduct } from '../services/api';
 import type { Product } from '../types';
 import { buildProductWhatsAppLink } from '../utils/whatsapp';
-import { buildProductPath, parseProductIdFromSlug } from '../utils/productUrl';
+import { buildProductPath, parseProductIdFromSlug, slugify } from '../utils/productUrl';
 
 const MpesaButton = ({ onClick, className = '' }: { onClick?: () => void; className?: string }) => (
   <button
@@ -106,6 +106,7 @@ const ProductDetail = () => {
   const originalPrice = Math.round(product.price * 1.2);
   const whatsappLink = buildProductWhatsAppLink(product);
   const canonicalPath = buildProductPath(product);
+  const categorySlug = slugify(product.category);
   const productJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -134,7 +135,7 @@ const ProductDetail = () => {
         <div className="text-sm text-on-surface-variant mb-8 flex items-center gap-2">
           <button onClick={() => navigate('/')} className="hover:text-primary">Home</button>
           <ChevronRight className="w-3 h-3" />
-          <button onClick={() => navigate(`/catalog/${product.category.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`)} className="hover:text-primary">{product.category}</button>
+          <button onClick={() => navigate(`/catalog/${categorySlug}`)} className="hover:text-primary">{product.category}</button>
           <ChevronRight className="w-3 h-3" />
           <span className="text-on-surface">{product.name}</span>
         </div>
@@ -166,7 +167,7 @@ const ProductDetail = () => {
 
             <button
               className="text-sm text-primary underline mb-8 text-left"
-              onClick={() => navigate(`/catalog/${product.category.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`)}
+              onClick={() => navigate(`/catalog/${categorySlug}`)}
             >
               View more in {product.category}
             </button>

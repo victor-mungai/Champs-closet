@@ -7,6 +7,7 @@ import AddProductModal from '../../components/forms/AddProductModal';
 import EditProductModal from '../../components/forms/EditProductModal';
 import { deleteProduct, fetchProducts, createProduct, updateProduct } from '../../services/api';
 import type { Product } from '../../types';
+import { getErrorMessage } from '../../utils/error';
 import type { AdminOutletContext } from './AdminLayout';
 
 const getProductImage = (product: Product) => {
@@ -19,21 +20,6 @@ const getAvailableStock = (product: Product) => {
   const stock = product.stock ?? 0;
   const reserved = product.reserved_stock ?? 0;
   return Math.max(0, stock - reserved);
-};
-
-const extractErrorMessage = (value: unknown, fallback: string) => {
-  if (!(value instanceof Error)) return fallback;
-  const raw = value.message?.trim();
-  if (!raw) return fallback;
-  try {
-    const parsed = JSON.parse(raw);
-    if (typeof parsed?.detail === 'string' && parsed.detail.length > 0) {
-      return parsed.detail;
-    }
-  } catch {
-    // keep original
-  }
-  return raw;
 };
 
 const Products = () => {
@@ -100,7 +86,7 @@ const Products = () => {
       await loadProducts();
       setActionSuccess('Product deleted successfully.');
     } catch (err: unknown) {
-      setActionError(extractErrorMessage(err, 'Unable to delete product right now.'));
+      setActionError(getErrorMessage(err, 'Unable to delete product right now.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -120,7 +106,7 @@ const Products = () => {
       await loadProducts();
       setActionSuccess('Product created successfully.');
     } catch (err: unknown) {
-      setActionError(extractErrorMessage(err, 'Unable to add product right now.'));
+      setActionError(getErrorMessage(err, 'Unable to add product right now.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -141,7 +127,7 @@ const Products = () => {
       await loadProducts();
       setActionSuccess('Product updated successfully.');
     } catch (err: unknown) {
-      setActionError(extractErrorMessage(err, 'Unable to update product right now.'));
+      setActionError(getErrorMessage(err, 'Unable to update product right now.'));
     } finally {
       setIsUpdating(false);
     }

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
-ARG NODE_VERSION=20-alpine
-ARG NGINX_VERSION=1.27-alpine
+ARG NODE_VERSION=20-alpine3.22
+ARG NGINX_VERSION=1.27.5-alpine3.22
 
 FROM node:${NODE_VERSION} AS deps
 WORKDIR /app
@@ -24,6 +24,8 @@ LABEL org.opencontainers.image.title="champs-closet-ui" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.licenses="Proprietary"
+
+RUN apk --no-cache upgrade
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html

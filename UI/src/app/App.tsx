@@ -19,7 +19,7 @@ import AdminAnalytics from '../pages/admin/Analytics';
 import AdminCreateSale from '../pages/admin/CreateSale';
 import AdminLogin from '../pages/admin/Login';
 
-const API_KEY = (import.meta as any).env?.VITE_GOOGLE_MAPS_PLATFORM_KEY || '';
+const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_PLATFORM_KEY || '';
 
 const ScrollToTop = () => {
   const { pathname, search } = useLocation();

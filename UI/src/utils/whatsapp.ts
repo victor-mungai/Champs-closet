@@ -33,7 +33,7 @@ export const buildProductInquiryMessage = (product: Product) => {
 };
 
 export const buildProductWhatsAppLink = (product: Product) => {
-  const configured = (import.meta as any).env?.VITE_WHATSAPP_NUMBER as string | undefined;
+  const configured = import.meta.env.VITE_WHATSAPP_NUMBER;
   const whatsappNumber = sanitizeNumber(configured);
   const message = encodeURIComponent(buildProductInquiryMessage(product));
   return `https://wa.me/${whatsappNumber}?text=${message}`;

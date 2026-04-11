@@ -4,6 +4,7 @@ import { ArrowLeft, ExternalLink, ReceiptText } from 'lucide-react';
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { fetchOrder } from '../../services/api';
 import type { Order } from '../../types';
+import { getErrorMessage } from '../../utils/error';
 import type { AdminOutletContext } from './AdminLayout';
 
 const formatAmount = (value: number) => new Intl.NumberFormat('en-KE', { maximumFractionDigits: 0 }).format(value);
@@ -92,9 +93,9 @@ const TransactionDetail = () => {
         const token = await user.getIdToken();
         const data = await fetchOrder(id, token);
         if (active) setOrder(data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!active) return;
-        setError(err?.message || 'Failed to load transaction details.');
+        setError(getErrorMessage(err, 'Failed to load transaction details.'));
       } finally {
         if (active) setLoading(false);
       }

@@ -5,6 +5,7 @@ import Filters from '../components/Filters';
 import ProductCard from '../components/ProductCard';
 import Seo from '../components/Seo';
 import { useProducts } from '../hooks/useProducts';
+import { extractAlphaNumericTokens } from '../utils/productUrl';
 
 const CATEGORY_META: Record<string, { title: string; description: string; backendCategory?: string }> = {
   all: {
@@ -60,11 +61,7 @@ const PAGE_SIZE = 20;
 const tokenizeTags = (search: string) => {
   return Array.from(
     new Set(
-      search
-        .toLowerCase()
-        .split(/[^a-z0-9]+/)
-        .map((token) => token.trim())
-        .filter((token) => token.length > 2),
+      extractAlphaNumericTokens(search).filter((token) => token.length > 2),
     ),
   );
 };

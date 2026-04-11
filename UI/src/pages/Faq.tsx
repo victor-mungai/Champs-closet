@@ -3,8 +3,8 @@ import { motion } from 'motion/react';
 import { ChevronDown, Search } from 'lucide-react';
 import { useProducts } from '../hooks/useProducts';
 
-const DELIVERY_RATE_PER_KM = Number((import.meta as any).env?.VITE_DELIVERY_RATE_PER_KM || 40);
-const LOCK_TTL_MINUTES = Number((import.meta as any).env?.VITE_INVENTORY_LOCK_TTL_MINUTES || 5);
+const DELIVERY_RATE_PER_KM = Number(import.meta.env.VITE_DELIVERY_RATE_PER_KM || 40);
+const LOCK_TTL_MINUTES = Number(import.meta.env.VITE_INVENTORY_LOCK_TTL_MINUTES || 5);
 
 type FaqEntry = {
   id: string;
