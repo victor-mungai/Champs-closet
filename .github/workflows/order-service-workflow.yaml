@@ -23,6 +23,9 @@ on:
 
 jobs:
   ci:
+    permissions:
+      contents: read
+      security-events: write
     uses: ./.github/workflows/_service-ci-template.yaml
     with:
       service_name: order-service
