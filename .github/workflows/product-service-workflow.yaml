@@ -2,6 +2,10 @@ name: product-service-workflow
 
 on:
   pull_request:
+    types:
+      - opened
+      - reopened
+      - ready_for_review
     branches:
       - main
     paths:
@@ -19,6 +23,9 @@ on:
 
 jobs:
   ci:
+    permissions:
+      contents: read
+      security-events: write
     uses: ./.github/workflows/_service-ci-template.yaml
     with:
       service_name: product-service

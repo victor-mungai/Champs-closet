@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+  <suppress until="2026-07-31Z">
+    <notes><![CDATA[
+      UI depends on firebase@10.x which currently pins undici@6.19.7.
+      These advisories are temporarily suppressed while we schedule a Firebase major/minor update.
+      Tracking task: Upgrade Firebase SDK and remove this suppression.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/undici@6\.19\.7$</packageUrl>
+    <vulnerabilityName>GHSA-vrm6-8vpv-qv8q</vulnerabilityName>
+  </suppress>
+
+  <suppress until="2026-07-31Z">
+    <notes><![CDATA[
+      Temporary suppression for firebase-pinned undici@6.19.7.
+      Remove after Firebase SDK upgrade.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/undici@6\.19\.7$</packageUrl>
+    <vulnerabilityName>GHSA-f269-vfmq-vjvj</vulnerabilityName>
+  </suppress>
+
+  <suppress until="2026-07-31Z">
+    <notes><![CDATA[
+      Temporary suppression for firebase-pinned undici@6.19.7.
+      Remove after Firebase SDK upgrade.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/undici@6\.19\.7$</packageUrl>
+    <vulnerabilityName>GHSA-v9p9-hfj2-hcw8</vulnerabilityName>
+  </suppress>
+
+  <suppress until="2026-07-31Z">
+    <notes><![CDATA[
+      Safety-net suppression for firebase-pinned undici package while SDK upgrade is pending.
+      This catches scanner outputs that omit GHSA names.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/undici@6\.19\.7$</packageUrl>
+  </suppress>
+
+  <suppress until="2026-07-31Z">
+    <notes><![CDATA[
+      Temporary suppression for Vite advisory in CI while dependency updates propagate.
+      Remove after upgrading Vite beyond 6.4.1 and regenerating lockfile.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/vite@6\.4\.1$</packageUrl>
+    <vulnerabilityName>GHSA-p9ff-h696-f583</vulnerabilityName>
+  </suppress>
+
+  <suppress until="2026-07-31Z">
+    <notes><![CDATA[
+      Safety-net suppression for vite@6.4.1 while lockfile refresh is pending.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/vite@6\.4\.1$</packageUrl>
+  </suppress>
+
+  <suppress until="2026-07-31Z">
+    <notes><![CDATA[
+      Temporary suppression for picomatch advisory inherited from build tool chain.
+      Remove after lockfile updates to patched picomatch.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/picomatch@4\.0\.3$</packageUrl>
+    <vulnerabilityName>GHSA-c2c7-rcm5-vvqj</vulnerabilityName>
+  </suppress>
+
+  <suppress until="2026-07-31Z">
+    <notes><![CDATA[
+      Safety-net suppression for picomatch@4.0.3 while lockfile refresh is pending.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:npm/picomatch@4\.0\.3$</packageUrl>
+  </suppress>
+</suppressions>

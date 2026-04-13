@@ -83,7 +83,7 @@ jobs:
       SONAR_CI_ENABLED: ${{ vars.SONAR_CI_ENABLED }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
-      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY}}
+      SONAR_PROJECT_KEY_PREFIX: ${{ vars.SONAR_PROJECT_KEY_PREFIX }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -123,6 +123,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Prepare dependency-check suppression file
+        env:
+          SERVICE_PATH: ${{ inputs.service_path }}
+        run: |
+          cp .github/dependency-check-suppressions.xml "${SERVICE_PATH}/dependency-check-suppressions.xml"
+
       - name: OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
@@ -135,6 +141,7 @@ jobs:
             --disableNodeJS
             --disableYarnAudit
             --disablePnpmAudit
+            --suppression ${{ inputs.service_path }}/dependency-check-suppressions.xml
             --failOnCVSS 7
 
       - name: Upload OWASP report artifact
@@ -147,8 +154,11 @@ jobs:
       - name: Check OWASP SARIF exists
         if: always()
         id: owasp_sarif
+        env:
+          SERVICE_NAME: ${{ inputs.service_name }}
         run: |
-          if [ -f reports-${{ inputs.service_name }}/dependency-check-report.sarif ]; then
+          REPORT_PATH="reports-${SERVICE_NAME}/dependency-check-report.sarif"
+          if [ -f "$REPORT_PATH" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT

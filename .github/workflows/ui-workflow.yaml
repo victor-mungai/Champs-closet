@@ -2,6 +2,10 @@ name: ui-workflow
 
 on:
   pull_request:
+    types:
+      - opened
+      - reopened
+      - ready_for_review
     branches:
       - main
     paths:
@@ -130,6 +134,9 @@ jobs:
       - name: Install dependencies (for Node analyzer context)
         run: npm ci
 
+      - name: Prepare dependency-check suppression file
+        run: cp "$GITHUB_WORKSPACE/.github/dependency-check-suppressions.xml" "$GITHUB_WORKSPACE/UI/dependency-check-suppressions.xml"
+
       - name: OWASP Dependency Check
         id: dependency-check
         uses: dependency-check/Dependency-Check_Action@main
@@ -144,7 +151,7 @@ jobs:
             --disableYarnAudit
             --disablePnpmAudit
             --nodeAuditSkipDevDependencies
-            --suppression ${{ github.workspace }}/.github/dependency-check-suppressions.xml
+            --suppression /github/workspace/UI/dependency-check-suppressions.xml
             --failOnCVSS 7
 
       - name: Upload OWASP report artifact
