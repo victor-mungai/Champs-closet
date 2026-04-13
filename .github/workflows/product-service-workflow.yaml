@@ -1,0 +1,27 @@
+name: product-service-workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'product_service/**'
+      - '.github/workflows/_service-ci-template.yaml'
+      - '.github/workflows/product-service-workflow.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'product_service/**'
+      - '.github/workflows/_service-ci-template.yaml'
+      - '.github/workflows/product-service-workflow.yaml'
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: ./.github/workflows/_service-ci-template.yaml
+    with:
+      service_name: product-service
+      service_path: product_service
+      image_name: victormungai/champs-product-service
+    secrets: inherit

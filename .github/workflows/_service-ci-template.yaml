@@ -1,55 +1,54 @@
-name: ui-workflow
+name: _service-ci-template
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'UI/**'
-      - '.github/workflows/ui-workflow.yaml'
-  push:
-    branches:
-      - main
-    paths:
-      - 'UI/**'
-      - '.github/workflows/ui-workflow.yaml'
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      service_name:
+        required: true
+        type: string
+      service_path:
+        required: true
+        type: string
+      image_name:
+        required: true
+        type: string
+      sonar_sources:
+        required: false
+        type: string
+        default: app
 
 concurrency:
-  group: ui-workflow-${{ github.ref }}
+  group: ${{ inputs.service_name }}-workflow-${{ github.ref }}
   cancel-in-progress: true
-
-env:
-  UI_WORKDIR: UI
-  IMAGE_NAME: victormungai/champs-ui
-  UI_DOCKERFILE: UI/Dockerfile
 
 jobs:
   lint:
-    name: ui-lint
+    name: ${{ inputs.service_name }}-lint
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ${{ env.UI_WORKDIR }}
+        working-directory: ${{ inputs.service_path }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: UI/package-lock.json
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: ${{ inputs.service_path }}/requirements.txt
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Lint (Type Check)
-        run: npm run lint
+      - name: Lint (compile check)
+        run: python -m compileall app
 
   build:
-    name: ui-docker-build
+    name: ${{ inputs.service_name }}-docker-build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -62,14 +61,14 @@ jobs:
         id: build_meta
         run: echo "build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
 
-      - name: Build UI image (multi-stage Dockerfile)
+      - name: Build service image
         uses: docker/build-push-action@v6
         with:
-          context: ${{ env.UI_WORKDIR }}
-          file: ${{ env.UI_DOCKERFILE }}
+          context: ${{ inputs.service_path }}
+          file: ${{ inputs.service_path }}/Dockerfile
           pull: true
           load: true
-          tags: ${{ env.IMAGE_NAME }}:ci-build
+          tags: ${{ inputs.image_name }}:ci-build
           build-args: |
             VERSION=${{ github.sha }}
             VCS_REF=${{ github.sha }}
@@ -78,13 +77,13 @@ jobs:
           cache-to: type=gha,mode=max
 
   sonarcloud:
-    name: ui-sonarcloud
+    name: ${{ inputs.service_name }}-sonarcloud
     runs-on: ubuntu-latest
     env:
       SONAR_CI_ENABLED: ${{ vars.SONAR_CI_ENABLED }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
       SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY}}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -94,7 +93,7 @@ jobs:
       - name: SonarCloud precheck
         id: sonar_precheck
         run: |
-          if [ "$SONAR_CI_ENABLED" = "true" ] && [ -n "$SONAR_TOKEN" ] && [ -n "$SONAR_PROJECT_KEY" ] && [ -n "$SONAR_ORGANIZATION" ]; then
+          if [ "$SONAR_CI_ENABLED" = "true" ] && [ -n "$SONAR_TOKEN" ] && [ -n "$SONAR_ORGANIZATION" ] && [ -n "$SONAR_PROJECT_KEY_PREFIX" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
@@ -106,59 +105,50 @@ jobs:
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
         with:
-          projectBaseDir: UI
+          projectBaseDir: ${{ inputs.service_path }}
           args: >
-            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
+            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY_PREFIX }}-${{ inputs.service_name }}
             -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
-            -Dsonar.sources=src
-            -Dsonar.exclusions=**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,**/node_modules/**,**/dist/**
+            -Dsonar.sources=${{ inputs.sonar_sources }}
+            -Dsonar.exclusions=**/venv/**,**/__pycache__/**,**/*.pyc
 
-      - name: SonarCloud skipped (missing secrets)
+      - name: SonarCloud skipped (missing config)
         if: ${{ steps.sonar_precheck.outputs.enabled != 'true' }}
-        run: echo "Skipping SonarCloud scan. Set SONAR_CI_ENABLED=true and configure SONAR_TOKEN, SONAR_PROJECT_KEY, SONAR_ORGANIZATION."
+        run: echo "Skipping SonarCloud scan. Set SONAR_CI_ENABLED=true, SONAR_PROJECT_KEY_PREFIX, SONAR_TOKEN and SONAR_ORGANIZATION."
 
   owasp-dependency-check:
-    name: ui-owasp-dependency-check
+    name: ${{ inputs.service_name }}-owasp-dependency-check
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.UI_WORKDIR }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies (for Node analyzer context)
-        run: npm ci
-
       - name: OWASP Dependency Check
-        id: dependency-check
         uses: dependency-check/Dependency-Check_Action@main
         with:
-          project: champs-ui
-          path: UI
+          project: champs-${{ inputs.service_name }}
+          path: ${{ inputs.service_path }}
           format: "ALL"
-          out: reports
+          out: reports-${{ inputs.service_name }}
           args: >
             --enableRetired
             --disableNodeJS
             --disableYarnAudit
             --disablePnpmAudit
-            --nodeAuditSkipDevDependencies
-            --suppression ${{ github.workspace }}/.github/dependency-check-suppressions.xml
             --failOnCVSS 7
 
       - name: Upload OWASP report artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: owasp-dependency-check-report
-          path: reports
+          name: owasp-dependency-check-report-${{ inputs.service_name }}
+          path: reports-${{ inputs.service_name }}
 
       - name: Check OWASP SARIF exists
         if: always()
         id: owasp_sarif
         run: |
-          if [ -f reports/dependency-check-report.sarif ]; then
+          if [ -f reports-${{ inputs.service_name }}/dependency-check-report.sarif ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
@@ -168,10 +158,10 @@ jobs:
         if: ${{ always() && steps.owasp_sarif.outputs.exists == 'true' }}
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: reports/dependency-check-report.sarif
+          sarif_file: reports-${{ inputs.service_name }}/dependency-check-report.sarif
 
   image-scan:
-    name: ui-image-scan
+    name: ${{ inputs.service_name }}-image-scan
     runs-on: ubuntu-latest
     needs:
       - lint
@@ -193,11 +183,11 @@ jobs:
       - name: Build image (local for scan)
         uses: docker/build-push-action@v6
         with:
-          context: ${{ env.UI_WORKDIR }}
-          file: ${{ env.UI_DOCKERFILE }}
+          context: ${{ inputs.service_path }}
+          file: ${{ inputs.service_path }}/Dockerfile
           pull: true
           load: true
-          tags: ${{ env.IMAGE_NAME }}:ci-scan
+          tags: ${{ inputs.image_name }}:ci-scan
           build-args: |
             VERSION=${{ github.sha }}
             VCS_REF=${{ github.sha }}
@@ -208,7 +198,7 @@ jobs:
       - name: Trivy image scan (fail on HIGH/CRITICAL)
         uses: aquasecurity/trivy-action@v0.24.0
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:ci-scan
+          image-ref: ${{ inputs.image_name }}:ci-scan
           format: table
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
@@ -218,19 +208,19 @@ jobs:
       - name: Trivy SARIF report
         uses: aquasecurity/trivy-action@v0.24.0
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:ci-scan
+          image-ref: ${{ inputs.image_name }}:ci-scan
           format: sarif
-          output: trivy-ui.sarif
+          output: trivy-${{ inputs.service_name }}.sarif
           vuln-type: 'os,library'
           severity: 'MEDIUM,HIGH,CRITICAL'
 
       - name: Upload Trivy SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: trivy-ui.sarif
+          sarif_file: trivy-${{ inputs.service_name }}.sarif
 
   docker-publish:
-    name: ui-docker-publish
+    name: ${{ inputs.service_name }}-docker-publish
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs:
@@ -250,7 +240,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_NAME }}
+          images: ${{ inputs.image_name }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-
@@ -269,8 +259,8 @@ jobs:
       - name: Build and push image to Docker Hub
         uses: docker/build-push-action@v6
         with:
-          context: ${{ env.UI_WORKDIR }}
-          file: ${{ env.UI_DOCKERFILE }}
+          context: ${{ inputs.service_path }}
+          file: ${{ inputs.service_path }}/Dockerfile
           pull: true
           push: true
           tags: ${{ steps.meta.outputs.tags }}
