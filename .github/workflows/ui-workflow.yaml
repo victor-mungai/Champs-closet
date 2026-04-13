@@ -144,7 +144,7 @@ jobs:
             --disableYarnAudit
             --disablePnpmAudit
             --nodeAuditSkipDevDependencies
-            --suppression ${{ github.workspace }}/.github/dependency-check-suppressions.xml
+            --suppression /github/workspace/.github/dependency-check-suppressions.xml
             --failOnCVSS 7
 
       - name: Upload OWASP report artifact
