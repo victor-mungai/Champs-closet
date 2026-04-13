@@ -10,14 +10,12 @@ on:
       - main
     paths:
       - 'api_gateway/**'
-      - '.github/workflows/_service-ci-template.yaml'
       - '.github/workflows/api-gateway-workflow.yaml'
   push:
     branches:
       - main
     paths:
       - 'api_gateway/**'
-      - '.github/workflows/_service-ci-template.yaml'
       - '.github/workflows/api-gateway-workflow.yaml'
   workflow_dispatch:
 
