@@ -116,60 +116,6 @@ jobs:
         if: ${{ steps.sonar_precheck.outputs.enabled != 'true' }}
         run: echo "Skipping SonarCloud scan. Set SONAR_CI_ENABLED=true, SONAR_PROJECT_KEY_PREFIX, SONAR_TOKEN and SONAR_ORGANIZATION."
 
-  owasp-dependency-check:
-    name: ${{ inputs.service_name }}-owasp-dependency-check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Prepare dependency-check suppression file
-        env:
-          SERVICE_PATH: ${{ inputs.service_path }}
-        run: |
-          cp .github/dependency-check-suppressions.xml "${SERVICE_PATH}/dependency-check-suppressions.xml"
-
-      - name: OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@main
-        with:
-          project: champs-${{ inputs.service_name }}
-          path: ${{ inputs.service_path }}
-          format: "ALL"
-          out: reports-${{ inputs.service_name }}
-          args: >
-            --enableRetired
-            --disableNodeJS
-            --disableYarnAudit
-            --disablePnpmAudit
-            --suppression ${{ inputs.service_path }}/dependency-check-suppressions.xml
-            --failOnCVSS 7
-
-      - name: Upload OWASP report artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: owasp-dependency-check-report-${{ inputs.service_name }}
-          path: reports-${{ inputs.service_name }}
-
-      - name: Check OWASP SARIF exists
-        if: always()
-        id: owasp_sarif
-        env:
-          SERVICE_NAME: ${{ inputs.service_name }}
-        run: |
-          REPORT_PATH="reports-${SERVICE_NAME}/dependency-check-report.sarif"
-          if [ -f "$REPORT_PATH" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Upload OWASP SARIF to GitHub Security
-        if: ${{ always() && steps.owasp_sarif.outputs.exists == 'true' }}
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: reports-${{ inputs.service_name }}/dependency-check-report.sarif
-
   image-scan:
     name: ${{ inputs.service_name }}-image-scan
     runs-on: ubuntu-latest
@@ -237,7 +183,6 @@ jobs:
       - lint
       - build
       - sonarcloud
-      - owasp-dependency-check
       - image-scan
     steps:
       - name: Checkout

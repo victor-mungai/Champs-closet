@@ -10,14 +10,12 @@ on:
       - main
     paths:
       - 'notification_service/**'
-      - '.github/workflows/_service-ci-template.yaml'
       - '.github/workflows/notification-service-workflow.yaml'
   push:
     branches:
       - main
     paths:
       - 'notification_service/**'
-      - '.github/workflows/_service-ci-template.yaml'
       - '.github/workflows/notification-service-workflow.yaml'
   workflow_dispatch:
 

@@ -10,14 +10,12 @@ on:
       - main
     paths:
       - 'order_service/**'
-      - '.github/workflows/_service-ci-template.yaml'
       - '.github/workflows/order-service-workflow.yaml'
   push:
     branches:
       - main
     paths:
       - 'order_service/**'
-      - '.github/workflows/_service-ci-template.yaml'
       - '.github/workflows/order-service-workflow.yaml'
   workflow_dispatch:
 

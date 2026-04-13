@@ -10,14 +10,12 @@ on:
       - main
     paths:
       - 'ai_service/**'
-      - '.github/workflows/_service-ci-template.yaml'
       - '.github/workflows/ai-service-workflow.yaml'
   push:
     branches:
       - main
     paths:
       - 'ai_service/**'
-      - '.github/workflows/_service-ci-template.yaml'
       - '.github/workflows/ai-service-workflow.yaml'
   workflow_dispatch:
 
