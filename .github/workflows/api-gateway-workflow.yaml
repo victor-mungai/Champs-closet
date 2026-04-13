@@ -1,0 +1,27 @@
+name: api-gateway-workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'api_gateway/**'
+      - '.github/workflows/_service-ci-template.yaml'
+      - '.github/workflows/api-gateway-workflow.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'api_gateway/**'
+      - '.github/workflows/_service-ci-template.yaml'
+      - '.github/workflows/api-gateway-workflow.yaml'
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: ./.github/workflows/_service-ci-template.yaml
+    with:
+      service_name: api-gateway
+      service_path: api_gateway
+      image_name: victormungai/champs-api-gateway
+    secrets: inherit

@@ -74,12 +74,19 @@ const AddProductModal = ({
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
+          onClick={() => {
+            resetForm();
+            onClose();
+          }}
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             className="bg-surface p-4 sm:p-6 rounded-3xl shadow-xl w-full max-w-lg my-4 sm:my-8 max-h-[95vh] overflow-y-auto"
+            onClick={(event) => event.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold font-headline">Add New Product</h2>
@@ -117,8 +124,8 @@ const AddProductModal = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <textarea name="description" required rows={3} className="w-full bg-surface-container-low px-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"></textarea>
+                <label className="block text-sm font-medium mb-1">Description (optional, AI can generate)</label>
+                <textarea name="description" rows={3} className="w-full bg-surface-container-low px-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"></textarea>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -168,8 +175,8 @@ const AddProductModal = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Tags (comma separated)</label>
-                  <input name="tags" placeholder="e.g. Cotton, Casual" required type="text" className="w-full bg-surface-container-low px-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  <label className="block text-sm font-medium mb-1">Tags (optional)</label>
+                  <input name="tags" placeholder="e.g. cotton, casual" type="text" className="w-full bg-surface-container-low px-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Initial Stock</label>

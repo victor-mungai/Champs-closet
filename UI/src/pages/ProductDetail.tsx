@@ -4,9 +4,12 @@ import { motion } from 'motion/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Button from '../components/Button';
 import ProductImageViewer from '../components/ProductImageViewer';
+import Seo from '../components/Seo';
 import { useCart } from '../context/CartContext';
 import { fetchProduct } from '../services/api';
 import type { Product } from '../types';
+import { buildProductWhatsAppLink } from '../utils/whatsapp';
+import { buildProductPath, parseProductIdFromSlug, slugify } from '../utils/productUrl';
 
 const MpesaButton = ({ onClick, className = '' }: { onClick?: () => void; className?: string }) => (
   <button
@@ -45,7 +48,8 @@ const parseDescription = (value?: string | null) => {
 const formatCurrency = (amount: number) => amount.toLocaleString('en-KE');
 
 const ProductDetail = () => {
-  const { id } = useParams();
+  const { id: productSlug } = useParams();
+  const productId = parseProductIdFromSlug(productSlug);
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
@@ -55,14 +59,18 @@ const ProductDetail = () => {
   const [selectedColor, setSelectedColor] = useState('light');
 
   useEffect(() => {
-    if (!id) return;
+    if (!productId) {
+      setIsLoading(false);
+      setError('Product not found');
+      return;
+    }
     setIsLoading(true);
     setError(null);
-    fetchProduct(id)
+    fetchProduct(productId)
       .then(setProduct)
       .catch(() => setError('Product not found'))
       .finally(() => setIsLoading(false));
-  }, [id]);
+  }, [productId]);
 
   const sizeOptions = useMemo(() => {
     if (!product) return ['M'];
@@ -96,14 +104,38 @@ const ProductDetail = () => {
 
   const description = parseDescription(product.description) || 'A wardrobe staple redefined. Crafted for comfort and everyday versatility.';
   const originalPrice = Math.round(product.price * 1.2);
+  const whatsappLink = buildProductWhatsAppLink(product);
+  const canonicalPath = buildProductPath(product);
+  const categorySlug = slugify(product.category);
+  const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    image: galleryImages,
+    description,
+    category: product.category,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'KES',
+      price: String(product.price),
+      availability: (product.available_stock ?? product.stock ?? 0) > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+    },
+  };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-20">
+    <>
+      <Seo
+        title={`${product.name} | Champ's Closet`}
+        description={description}
+        canonicalPath={canonicalPath}
+        jsonLd={productJsonLd}
+      />
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-20">
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="text-sm text-on-surface-variant mb-8 flex items-center gap-2">
           <button onClick={() => navigate('/')} className="hover:text-primary">Home</button>
           <ChevronRight className="w-3 h-3" />
-          <button onClick={() => navigate('/catalog/all')} className="hover:text-primary">{product.category}</button>
+          <button onClick={() => navigate(`/catalog/${categorySlug}`)} className="hover:text-primary">{product.category}</button>
           <ChevronRight className="w-3 h-3" />
           <span className="text-on-surface">{product.name}</span>
         </div>
@@ -133,11 +165,18 @@ const ProductDetail = () => {
               </div>
             )}
 
+            <button
+              className="text-sm text-primary underline mb-8 text-left"
+              onClick={() => navigate(`/catalog/${categorySlug}`)}
+            >
+              View more in {product.category}
+            </button>
+
             <div className="space-y-6 mb-12">
               <div>
                 <div className="flex justify-between mb-3">
                   <span className="font-medium">Size</span>
-                  <button className="text-sm text-on-surface-variant underline" onClick={() => alert('Size guide coming soon.')}>Size Guide</button>
+                  <button className="text-sm text-on-surface-variant underline" onClick={() => navigate('/faq')}>Size Guide</button>
                 </div>
                 <div className="flex gap-3 flex-wrap">
                   {sizeOptions.map(size => (
@@ -175,6 +214,14 @@ const ProductDetail = () => {
 
             <div className="mt-auto space-y-4">
               <MpesaButton onClick={() => { addToCart(product, selectedSize); navigate('/checkout'); }} />
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center rounded-full bg-[#25D366] hover:bg-[#1FB155] text-white py-3 px-6 font-medium transition-colors"
+              >
+                Inquire on WhatsApp
+              </a>
               <Button variant="outline" className="w-full" onClick={() => addToCart(product, selectedSize)}>Add to Cart</Button>
             </div>
 
@@ -191,7 +238,8 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
-    </motion.div>
+      </motion.div>
+    </>
   );
 };
 

@@ -1,0 +1,27 @@
+name: ingestion-service-workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'ingestion_service/**'
+      - '.github/workflows/_service-ci-template.yaml'
+      - '.github/workflows/ingestion-service-workflow.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'ingestion_service/**'
+      - '.github/workflows/_service-ci-template.yaml'
+      - '.github/workflows/ingestion-service-workflow.yaml'
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: ./.github/workflows/_service-ci-template.yaml
+    with:
+      service_name: ingestion-service
+      service_path: ingestion_service
+      image_name: victormungai/champs-ingestion-service
+    secrets: inherit

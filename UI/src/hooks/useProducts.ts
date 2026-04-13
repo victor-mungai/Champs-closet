@@ -5,7 +5,10 @@ import type { Product } from '../types';
 export type ProductFilters = {
   category?: string;
   tag?: string;
+  tags?: string[];
   search?: string;
+  limit?: number;
+  offset?: number;
 };
 
 export const useProducts = (filters: ProductFilters = {}, refreshKey = 0) => {
@@ -13,11 +16,17 @@ export const useProducts = (filters: ProductFilters = {}, refreshKey = 0) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const stableFilters = useMemo(() => ({
-    category: filters.category,
-    tag: filters.tag,
-    search: filters.search,
-  }), [filters.category, filters.tag, filters.search]);
+  const stableFilters = useMemo(
+    () => ({
+      category: filters.category,
+      tag: filters.tag,
+      tags: filters.tags,
+      search: filters.search,
+      limit: filters.limit,
+      offset: filters.offset,
+    }),
+    [filters.category, filters.tag, filters.tags, filters.search, filters.limit, filters.offset],
+  );
 
   useEffect(() => {
     let isMounted = true;

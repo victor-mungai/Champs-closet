@@ -1303,7 +1303,7 @@ const AdminProducts = ({
         throw new Error('Delete failed');
       }
       setProductToDelete(null);
-      await onRefresh();
+      onRefresh();
     } catch (err) {
       setActionError('Unable to delete product right now.');
     } finally {
@@ -1328,7 +1328,7 @@ const AdminProducts = ({
       if (!response.ok) {
         throw new Error('Create failed');
       }
-      await onRefresh();
+      onRefresh();
     } catch (err) {
       setActionError('Unable to add product right now.');
     } finally {

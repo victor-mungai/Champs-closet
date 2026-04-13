@@ -1,0 +1,27 @@
+name: ai-service-workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'ai_service/**'
+      - '.github/workflows/_service-ci-template.yaml'
+      - '.github/workflows/ai-service-workflow.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'ai_service/**'
+      - '.github/workflows/_service-ci-template.yaml'
+      - '.github/workflows/ai-service-workflow.yaml'
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: ./.github/workflows/_service-ci-template.yaml
+    with:
+      service_name: ai-service
+      service_path: ai_service
+      image_name: victormungai/champs-ai-service
+    secrets: inherit
