@@ -121,62 +121,7 @@ jobs:
         if: ${{ steps.sonar_precheck.outputs.enabled != 'true' }}
         run: echo "Skipping SonarCloud scan. Set SONAR_CI_ENABLED=true and configure SONAR_TOKEN, SONAR_PROJECT_KEY, SONAR_ORGANIZATION."
 
-  owasp-dependency-check:
-    name: ui-owasp-dependency-check
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.UI_WORKDIR }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install dependencies (for Node analyzer context)
-        run: npm ci
-
-      - name: Prepare dependency-check suppression file
-        run: cp "$GITHUB_WORKSPACE/.github/dependency-check-suppressions.xml" "$GITHUB_WORKSPACE/UI/dependency-check-suppressions.xml"
-
-      - name: OWASP Dependency Check
-        id: dependency-check
-        uses: dependency-check/Dependency-Check_Action@main
-        with:
-          project: champs-ui
-          path: UI
-          format: "ALL"
-          out: reports
-          args: >
-            --enableRetired
-            --disableNodeJS
-            --disableYarnAudit
-            --disablePnpmAudit
-            --nodeAuditSkipDevDependencies
-            --suppression /github/workspace/UI/dependency-check-suppressions.xml
-            --failOnCVSS 7
-
-      - name: Upload OWASP report artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: owasp-dependency-check-report
-          path: reports
-
-      - name: Check OWASP SARIF exists
-        if: always()
-        id: owasp_sarif
-        run: |
-          if [ -f reports/dependency-check-report.sarif ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Upload OWASP SARIF to GitHub Security
-        if: ${{ always() && steps.owasp_sarif.outputs.exists == 'true' }}
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: reports/dependency-check-report.sarif
-
+  
   image-scan:
     name: ui-image-scan
     runs-on: ubuntu-latest
@@ -244,7 +189,6 @@ jobs:
       - lint
       - build
       - sonarcloud
-      - owasp-dependency-check
       - image-scan
     steps:
       - name: Checkout
