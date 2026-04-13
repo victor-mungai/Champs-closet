@@ -135,7 +135,7 @@ jobs:
         run: npm ci
 
       - name: Prepare dependency-check suppression file
-        run: cp .github/dependency-check-suppressions.xml UI/dependency-check-suppressions.xml
+        run: cp "$GITHUB_WORKSPACE/.github/dependency-check-suppressions.xml" "$GITHUB_WORKSPACE/UI/dependency-check-suppressions.xml"
 
       - name: OWASP Dependency Check
         id: dependency-check
@@ -151,7 +151,7 @@ jobs:
             --disableYarnAudit
             --disablePnpmAudit
             --nodeAuditSkipDevDependencies
-            --suppression UI/dependency-check-suppressions.xml
+            --suppression /github/workspace/UI/dependency-check-suppressions.xml
             --failOnCVSS 7
 
       - name: Upload OWASP report artifact
