@@ -90,26 +90,35 @@ def _expand_range(start: int, end: int) -> list[str]:
 
 
 def _extract_sizes(text: str) -> list[str]:
-    sizes: list[str] = []
+    sizes = _extract_range_sizes(text)
+    sizes.extend(_extract_line_sizes(text))
+    return _dedupe_strings(sizes)
 
+
+def _extract_range_sizes(text: str) -> list[str]:
+    sizes: list[str] = []
     for match in re.finditer(r"(\d{1,2})\s*[-_]{1,}\s*(\d{1,2})", text):
         try:
-            start = int(match.group(1))
-            end = int(match.group(2))
+            sizes.extend(_expand_range(int(match.group(1)), int(match.group(2))))
         except Exception:
             continue
-        sizes.extend(_expand_range(start, end))
+    return sizes
 
+
+def _extract_line_sizes(text: str) -> list[str]:
+    sizes: list[str] = []
     for line in text.split('\n'):
-        if re.search(r"\bsize|sizes|sz\b", line, re.IGNORECASE):
-            for num in re.findall(r"\d{1,2}(?:\.\d)?", line):
-                if num not in sizes:
-                    sizes.append(num)
+        if not re.search(r"\bsize|sizes|sz\b", line, re.IGNORECASE):
+            continue
+        sizes.extend(re.findall(r"\d{1,2}(?:\.\d)?", line))
+    return sizes
 
-    unique = []
-    for size in sizes:
-        if size not in unique:
-            unique.append(size)
+
+def _dedupe_strings(values: list[str]) -> list[str]:
+    unique: list[str] = []
+    for value in values:
+        if value not in unique:
+            unique.append(value)
     return unique
 
 

@@ -261,7 +261,7 @@ Use these steps from the project root (`c:\work\Champs-closet`) to run the full 
 
 * Python 3.12+
 * Node.js 20+
-* Docker Desktop (for Redis)
+* Docker 
 * Valid `.env` files in:
   * `product_service/.env`
   * `ai_service/.env`
@@ -321,7 +321,24 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8004
 ```
 
-### 8. Start UI (port 3000)
+### 8. Start API Gateway (port 8080)
+
+```powershell
+cd api_gateway
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+```
+
+Set frontend env to point at gateway:
+
+```env
+VITE_API_URL=http://localhost:8080
+VITE_ORDER_API_URL=http://localhost:8080
+```
+
+### 9. Start UI (port 3000)
 
 ```powershell
 cd UI
@@ -329,7 +346,7 @@ npm install
 npm run dev
 ```
 
-### 9. Quick Health Checks
+### 10. Quick Health Checks
 
 ```powershell
 curl http://localhost:8000/health
@@ -337,6 +354,84 @@ curl http://localhost:8001/health
 curl http://localhost:8002/health
 curl http://localhost:8003/health
 curl http://localhost:8004/health
+curl http://localhost:8080/health
 ```
 
 
+
+## Memory Optimization Playbook (Per Service)
+
+Use these defaults to keep RAM predictable under load.
+
+### Global Runtime
+
+- Start FastAPI services with bounded concurrency:
+
+```powershell
+uvicorn app.main:app --host 0.0.0.0 --port <PORT> --workers 2 --limit-concurrency 100
+```
+
+- Keep Redis stream growth bounded with `MAXLEN` (already wired in code).
+- Keep payloads minimal in events and logs.
+
+### Product Service
+
+- Pagination is enabled on catalog endpoints:
+  - `GET /products?limit=20&offset=0`
+- DB pool tuning envs:
+  - `DB_POOL_SIZE=5`
+  - `DB_MAX_OVERFLOW=10`
+- Redis stream cap env:
+  - `PRODUCT_STREAM_MAXLEN=1000`
+
+### AI Service
+
+- Concurrency cap env:
+  - `AI_MAX_CONCURRENCY=3`
+- Timeout and retry envs:
+  - `GEMINI_TIMEOUT=10`
+  - `GEMINI_MAX_RETRIES=3`
+- Redis stream caps:
+  - `AI_EVENTS_MAXLEN=1000`
+  - `AI_DLQ_MAXLEN=5000`
+
+### Ingestion Service
+
+- Buffer caps:
+  - `MAX_IMAGES_PER_SESSION=5`
+  - `MAX_TEXTS_PER_SESSION=5`
+- Session TTL:
+  - `SESSION_TTL=600`
+- Grace batching window:
+  - `IMAGE_GRACE_SECONDS=5`
+
+### Order Service
+
+- DB pool tuning envs:
+  - `DB_POOL_SIZE=5`
+  - `DB_MAX_OVERFLOW=10`
+- Redis stream cap:
+  - `ORDER_EVENTS_MAXLEN=1000`
+- Keep list queries paginated (`limit` + `offset` supported on `/orders`).
+
+### API Gateway
+
+- Reused async HTTP connection pool is enabled.
+- Gateway tuning envs:
+  - `HTTP_TIMEOUT_SECONDS=30`
+  - `HTTP_MAX_CONNECTIONS=100`
+  - `HTTP_MAX_KEEPALIVE_CONNECTIONS=20`
+  - `MAX_REQUEST_BODY_BYTES=2097152`
+- Cache and rate limiting remain enabled by default.
+
+### Notification Service
+
+- PDF upload uses file streaming and temp file cleanup.
+- DLQ cap env:
+  - `DLQ_MAXLEN=5000`
+
+### Quick Redis Memory Check
+
+```powershell
+docker exec -it champs-closet-redis-1 redis-cli INFO memory
+```

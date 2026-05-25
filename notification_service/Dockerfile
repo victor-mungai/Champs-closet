@@ -20,8 +20,8 @@ ARG BUILD_DATE=unknown
 ARG VCS_REF=unknown
 ARG VERSION=dev
 
-LABEL org.opencontainers.image.title="champs-closet-ingestion-service" \
-      org.opencontainers.image.description="WhatsApp ingestion service for Champs Closet" \
+LABEL org.opencontainers.image.title="champs-closet-notification-service" \
+      org.opencontainers.image.description="Notification and receipt service for Champs Closet" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
@@ -39,6 +39,6 @@ COPY --from=builder /opt/venv /opt/venv
 COPY ./app ./app
 
 USER appuser
-EXPOSE 8002
+EXPOSE 8004
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004"]

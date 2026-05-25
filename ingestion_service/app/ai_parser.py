@@ -49,6 +49,9 @@ GENERIC_NAMES = {
     'casual',
 }
 
+TOKEN_SPLIT_PATTERN = r"[,/\s]+"
+COLOR_WORDS = {'navy', 'black', 'brown', 'coffee', 'white', 'grey', 'gray', 'blue', 'red', 'green'}
+
 
 def _cache_key(text: str) -> str:
     digest = hashlib.sha256(text.encode('utf-8')).hexdigest()
@@ -186,7 +189,7 @@ def _extract_sizes_fallback(text: str) -> list[str]:
 def _extract_colors_fallback(text: str) -> list[str]:
     colors: list[str] = []
     for group in re.findall(r"\(([^)]*)\)", text):
-        parts = re.split(r"[,/\s]+", group)
+        parts = re.split(TOKEN_SPLIT_PATTERN, group)
         for part in parts:
             color = part.strip().lower()
             if color:
@@ -195,7 +198,7 @@ def _extract_colors_fallback(text: str) -> list[str]:
         words = re.findall(r"[a-zA-Z]+", text)
         for word in words:
             w = word.lower()
-            if w in {'navy', 'black', 'brown', 'coffee', 'white', 'grey', 'gray', 'blue', 'red', 'green'}:
+            if w in COLOR_WORDS:
                 colors.append(w)
     return _clean_colors(colors)
 
@@ -216,24 +219,27 @@ def _extract_price_fallback(text: str) -> int | None:
     return None
 
 
-def parse_product_text(text: str) -> dict:
-    if not text:
-        return {
-            'name': 'Shoe',
-            'price': None,
-            'sizes': [],
-            'colors': [],
-        }
+def _empty_parse_result() -> dict:
+    return {
+        'name': 'Shoe',
+        'price': None,
+        'sizes': [],
+        'colors': [],
+    }
 
-    cache_key = _cache_key(text)
+
+def _cached_result(cache_key: str) -> dict | None:
     cached = redis_client.get(cache_key)
-    if cached:
-        try:
-            return json.loads(cached)
-        except Exception:
-            pass
+    if not cached:
+        return None
+    try:
+        return json.loads(cached)
+    except Exception:
+        return None
 
-    prompt = (
+
+def _build_prompt(text: str) -> str:
+    return (
         "You are a strict data extraction engine.\n\n"
         "Extract structured product data from this WhatsApp supplier message:\n\n"
         f"\"{text}\"\n\n"
@@ -271,65 +277,109 @@ def parse_product_text(text: str) -> dict:
         "- NO backticks\n"
     )
 
-    headers = {"x-goog-api-key": GEMINI_API_KEY or ''}
 
+def _fetch_raw_ai_output(prompt: str, headers: dict[str, str]) -> str:
+    with httpx.Client(timeout=10) as client:
+        resp = client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
+            json={"contents": [{"parts": [{"text": prompt}]}]},
+            headers=headers,
+        )
+        resp.raise_for_status()
+    return resp.json()['candidates'][0]['content']['parts'][0]['text']
+
+
+def _normalize_name(parsed: dict, text: str) -> str:
+    raw_name = str(parsed.get('name') or '').strip()
+    name = _clean_product_name(raw_name) if raw_name else ''
+    if not name or _is_generic_name(name):
+        return _best_name_from_text(text)
+    return name
+
+
+def _normalize_price(parsed: dict, text: str) -> int:
+    price = parsed.get('price')
+    if price is None:
+        price = _extract_price_fallback(text)
+    if price is None or (isinstance(price, (int, float)) and price <= 0):
+        raise RuntimeError('Invalid price from AI')
+    return int(price)
+
+
+def _normalize_sizes(parsed: dict, text: str) -> list[str]:
+    sizes = parsed.get('sizes') or []
+    if isinstance(sizes, str):
+        sizes = re.split(TOKEN_SPLIT_PATTERN, sizes)
+    normalized = _expand_sizes(sizes)
+    if normalized:
+        return normalized
+    return _extract_sizes_fallback(text)
+
+
+def _normalize_colors(parsed: dict, text: str) -> list[str]:
+    colors = parsed.get('colors') or []
+    if isinstance(colors, str):
+        colors = re.split(TOKEN_SPLIT_PATTERN, colors)
+    normalized = _clean_colors(colors)
+    if normalized:
+        return normalized
+    return _extract_colors_fallback(text)
+
+
+def _build_ai_result(parsed: dict, text: str) -> dict:
+    return {
+        'name': _normalize_name(parsed, text),
+        'price': _normalize_price(parsed, text),
+        'sizes': _normalize_sizes(parsed, text),
+        'colors': _normalize_colors(parsed, text),
+    }
+
+
+def _parse_with_ai(text: str, prompt: str, headers: dict[str, str]) -> dict:
+    raw_text = _fetch_raw_ai_output(prompt, headers)
+    parsed = _clean_json(raw_text)
+    if not parsed:
+        raise RuntimeError('Invalid AI output')
+    return _build_ai_result(parsed, text)
+
+
+def _parse_with_retries(text: str, prompt: str, headers: dict[str, str]) -> dict | None:
     for attempt in range(3):
         try:
-            if not GEMINI_API_KEY:
-                raise RuntimeError('GEMINI_API_KEY is not set')
-            with httpx.Client(timeout=10) as client:
-                resp = client.post(
-                    f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
-                    json={"contents": [{"parts": [{"text": prompt}]}]},
-                    headers=headers,
-                )
-                resp.raise_for_status()
-                raw_text = resp.json()['candidates'][0]['content']['parts'][0]['text']
-
-            parsed = _clean_json(raw_text)
-            if not parsed:
-                raise RuntimeError('Invalid AI output')
-
-            raw_name = str(parsed.get('name') or '').strip()
-            name = _clean_product_name(raw_name) if raw_name else ''
-            if not name or _is_generic_name(name):
-                name = _best_name_from_text(text)
-
-            price = parsed.get('price')
-            if price is None:
-                price = _extract_price_fallback(text)
-            if price is None or (isinstance(price, (int, float)) and price <= 0):
-                raise RuntimeError('Invalid price from AI')
-            price = int(price)
-
-            sizes = parsed.get('sizes') or []
-            if isinstance(sizes, str):
-                sizes = re.split(r"[,/\s]+", sizes)
-            sizes = _expand_sizes(sizes) or _extract_sizes_fallback(text)
-
-            colors = parsed.get('colors') or []
-            if isinstance(colors, str):
-                colors = re.split(r"[,/\s]+", colors)
-            colors = _clean_colors(colors) or _extract_colors_fallback(text)
-
-            result = {
-                'name': name,
-                'price': price,
-                'sizes': sizes,
-                'colors': colors,
-            }
-
-            redis_client.set(cache_key, json.dumps(result), ex=AI_PARSE_TTL_SECONDS)
-            return result
+            return _parse_with_ai(text, prompt, headers)
         except Exception:
             if attempt == 2:
-                break
+                return None
             time.sleep(2 ** attempt)
+    return None
 
-    fallback_name = _best_name_from_text(text)
+
+def _fallback_parse(text: str) -> dict:
     return {
-        'name': fallback_name,
+        'name': _best_name_from_text(text),
         'price': _extract_price_fallback(text),
         'sizes': _extract_sizes_fallback(text),
         'colors': _extract_colors_fallback(text),
     }
+
+
+def parse_product_text(text: str) -> dict:
+    if not text:
+        return _empty_parse_result()
+
+    if not GEMINI_API_KEY:
+        return _fallback_parse(text)
+
+    cache_key = _cache_key(text)
+    cached = _cached_result(cache_key)
+    if cached:
+        return cached
+
+    prompt = _build_prompt(text)
+    headers = {"x-goog-api-key": GEMINI_API_KEY or ''}
+    result = _parse_with_retries(text, prompt, headers)
+    if not result:
+        return _fallback_parse(text)
+
+    redis_client.set(cache_key, json.dumps(result), ex=AI_PARSE_TTL_SECONDS)
+    return result

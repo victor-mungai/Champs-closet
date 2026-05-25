@@ -1,0 +1,22 @@
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SUPABASE_DB_URL = os.getenv('SUPABASE_DB_URL', 'sqlite:///./dev.db')
+DB_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '5'))
+DB_MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '10'))
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379')
+PRODUCT_STREAM_MAXLEN = int(os.getenv('PRODUCT_STREAM_MAXLEN', '1000'))
+
+CLOUDINARY_CLOUD_NAME = os.getenv('CLOUDINARY_CLOUD_NAME')
+CLOUDINARY_API_KEY = os.getenv('CLOUDINARY_API_KEY')
+CLOUDINARY_API_SECRET = os.getenv('CLOUDINARY_API_SECRET')
+
+FIREBASE_AUTH_DISABLED = os.getenv('FIREBASE_AUTH_DISABLED', 'true').lower() == 'true'
+FIREBASE_CREDENTIALS = os.getenv('FIREBASE_CREDENTIALS')
+FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID')
+
+PRODUCT_SERVICE_INTERNAL_TOKEN = os.getenv('PRODUCT_SERVICE_INTERNAL_TOKEN')
+

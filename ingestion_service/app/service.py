@@ -5,7 +5,7 @@ import asyncio
 
 from app.ai_parser import parse_product_text
 from app.client import create_product
-from app.config import ALLOWED_NUMBERS, SESSION_TTL, IMAGE_GRACE_SECONDS
+from app.config import ALLOWED_NUMBERS, IMAGE_GRACE_SECONDS, MAX_IMAGES_PER_SESSION, MAX_TEXTS_PER_SESSION, SESSION_TTL
 from app.redis_client import redis_client
 from app.uploader import upload_image
 from app.whatsapp import parse_whatsapp_payload
@@ -36,16 +36,36 @@ def _dedupe_key(phone: str, text: str) -> str:
 
 def _store_images(phone: str, image_urls: list[str]) -> None:
     key = _session_key(phone)
-    if image_urls:
-        redis_client.rpush(key, *image_urls)
-        redis_client.expire(key, SESSION_TTL)
-        redis_client.set(_last_image_key(phone), str(time.time()), ex=SESSION_TTL)
-        logger.info('Stored images', extra={"phone": phone, "count": len(image_urls)})
+    if not image_urls:
+        return
+
+    existing = redis_client.lrange(key, 0, -1) or []
+    seen = set(existing)
+    new_urls = []
+    for url in image_urls:
+        cleaned = (url or '').strip()
+        if cleaned and cleaned not in seen:
+            new_urls.append(cleaned)
+            seen.add(cleaned)
+
+    if new_urls:
+        redis_client.rpush(key, *new_urls)
+
+    redis_client.ltrim(key, -MAX_IMAGES_PER_SESSION, -1)
+    redis_client.expire(key, SESSION_TTL)
+    redis_client.set(_last_image_key(phone), str(time.time()), ex=SESSION_TTL)
+
+    count = redis_client.llen(key)
+    logger.info('Stored images', extra={"phone": phone, "count": int(count or 0)})
 
 
 def _store_text(phone: str, text: str) -> None:
     key = _text_key(phone)
-    redis_client.rpush(key, text)
+    cleaned = (text or '').strip()
+    if not cleaned:
+        return
+    redis_client.rpush(key, cleaned)
+    redis_client.ltrim(key, -MAX_TEXTS_PER_SESSION, -1)
     redis_client.expire(key, SESSION_TTL)
     logger.info('Stored text', extra={"phone": phone})
 
@@ -132,8 +152,8 @@ async def _process_one(phone: str) -> bool:
     text = _peek_text(phone)
     logger.info('Images fetched', extra={"phone": phone, "count": len(images)})
 
-    if len(images) > 10:
-        logger.warning('Too many images in buffer, clearing', extra={"phone": phone, "count": len(images)})
+    if len(images) > MAX_IMAGES_PER_SESSION:
+        logger.warning('Too many images in buffer, clearing', extra={"phone": phone, "count": len(images), "max": MAX_IMAGES_PER_SESSION})
         _clear_all_buffers(phone)
         return False
 
